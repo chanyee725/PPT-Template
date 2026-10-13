@@ -1,0 +1,15 @@
+{
+  "name": "ppt-template",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Navy report deck template built on pptxgenjs",
+  "main": "template.js",
+  "scripts": {
+    "setup": "node scripts/setup.js",
+    "interim": "node examples/interim-report.js out/interim-report.pptx"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "pptxgenjs": "^3.12.0"
+  }
+}
