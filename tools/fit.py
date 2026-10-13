@@ -1,6 +1,6 @@
 """Flag text boxes whose wrapped text is taller than the box.
 
-    python tools/fit.py out/interim-report.pptx
+    python tools/fit.py templates/interim-report.pptx
 
 Measures with the font fc-match finds for "Pretendard:bold" -- the deck's font
 when it is installed, a fallback (and so only an estimate) when it is not.
@@ -16,10 +16,18 @@ from pptx.util import Emu
 LINE = 1.25  # line height as a multiple of the font size
 
 
-def font_path(pattern: str) -> str:
-    return subprocess.run(
-        ["fc-match", "-f", "%{file}", pattern], capture_output=True, text=True
-    ).stdout
+def font_path(*patterns: str) -> str:
+    """The first pattern fc-match really has; it never fails, it substitutes."""
+    for pattern in patterns:
+        out = subprocess.run(
+            ["fc-match", "-f", "%{family}\t%{file}", pattern],
+            capture_output=True,
+            text=True,
+        ).stdout
+        family, _, path = out.partition("\t")
+        if pattern.split(":")[0].lower() in family.lower():
+            return path
+    return path
 
 
 def width(font_file: str, text: str, pt: float) -> float:
@@ -48,7 +56,7 @@ def needed_height(frame, box_w: float, font_file: str) -> float:
 
 def main() -> int:
     deck = Presentation(sys.argv[1])
-    font_file = sys.argv[2] if len(sys.argv) > 2 else font_path("Pretendard:bold")
+    font_file = sys.argv[2] if len(sys.argv) > 2 else font_path("Pretendard:bold", "NanumGothic:bold")
     sw, sh = deck.slide_width, deck.slide_height
     problems = 0
     for n, slide in enumerate(deck.slides, 1):
