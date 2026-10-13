@@ -1,6 +1,7 @@
 node_modules/
-out/
+preview/
 .venv/
 __pycache__/
-# written by `npm run setup`; personal details stay local
+# real reports and presenter.json carry personal details; they stay local
+outputs/
 presenter.json
