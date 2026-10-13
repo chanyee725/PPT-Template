@@ -1,0 +1,6 @@
+node_modules/
+out/
+.venv/
+__pycache__/
+# written by `npm run setup`; personal details stay local
+presenter.json
