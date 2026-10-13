@@ -1,9 +1,9 @@
 """Rough slide previews for when LibreOffice is not installed.
 
-    python tools/preview.py out/interim-report.pptx out/preview
+    python tools/preview.py templates/interim-report.pptx preview
 
 Draws shape boxes, fills and wrapped text, with charts as empty frames. It
-ignores alignment and vertical centring, so use it to catch overlaps and
+centres centred text but ignores vertical centring, so use it to catch overlaps and
 crowding, not to judge the final look. Writes slide-NN.png and sheet-N.png
 (six slides per sheet).
 """
@@ -23,14 +23,22 @@ A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
 P = "{http://schemas.openxmlformats.org/presentationml/2006/main}"
 
 
-def font_path(pattern: str) -> str:
-    return subprocess.run(
-        ["fc-match", "-f", "%{file}", pattern], capture_output=True, text=True
-    ).stdout
+def font_path(*patterns: str) -> str:
+    """The first pattern fc-match really has; it never fails, it substitutes."""
+    for pattern in patterns:
+        out = subprocess.run(
+            ["fc-match", "-f", "%{family}\t%{file}", pattern],
+            capture_output=True,
+            text=True,
+        ).stdout
+        family, _, path = out.partition("\t")
+        if pattern.split(":")[0].lower() in family.lower():
+            return path
+    return path
 
 
-SANS = font_path("Pretendard")
-BOLD = font_path("Pretendard:bold")
+SANS = font_path("Pretendard", "NanumGothic")
+BOLD = font_path("Pretendard:bold", "NanumGothic:bold")
 
 
 def scheme(deck) -> dict:
@@ -69,19 +77,23 @@ def fill_and_line(shape, sch):
     return fill, line
 
 
-def wrap(d, text, x, y, w, pt, font_file, ink):
+def wrap(d, text, x, y, w, pt, font_file, ink, center=False):
     font = ImageFont.truetype(font_file, max(8, int(pt)))
+
+    def offset(line):
+        return (w - font.getlength(line)) / 2 if center else 0
+
     for para in text.split("\n"):
         line = ""
         for word in para.split(" "):
             trial = (line + " " + word).strip()
             if font.getlength(trial) > w and line:
-                d.text((x, y), line, fill=ink, font=font)
+                d.text((x + offset(line), y), line, fill=ink, font=font)
                 y += pt * 1.25
                 line = word
             else:
                 line = trial
-        d.text((x, y), line, fill=ink, font=font)
+        d.text((x + offset(line), y), line, fill=ink, font=font)
         y += pt * 1.25
 
 
@@ -128,12 +140,14 @@ def draw(d, shapes, sch):
             if run is not None:
                 ink = colour(run._r.find(".//" + A + "solidFill"), sch) or ink
             bold = run is not None and run.font.bold
-            wrap(d, sh.text_frame.text, x, y, w, pt, BOLD if bold else SANS, ink)
+            align = sh.text_frame.paragraphs[0].alignment
+            center = align is not None and int(align) == 2
+            wrap(d, sh.text_frame.text, x, y, w, pt, BOLD if bold else SANS, ink, center)
 
 
 def main() -> None:
     deck = Presentation(sys.argv[1])
-    out = Path(sys.argv[2] if len(sys.argv) > 2 else "out/preview")
+    out = Path(sys.argv[2] if len(sys.argv) > 2 else "preview")
     out.mkdir(parents=True, exist_ok=True)
     sch = scheme(deck)
     size = (
