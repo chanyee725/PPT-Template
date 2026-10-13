@@ -6,7 +6,7 @@
   "main": "template.js",
   "scripts": {
     "setup": "node scripts/setup.js",
-    "interim": "node examples/interim-report.js out/interim-report.pptx"
+    "interim": "node examples/interim-report.js templates/interim-report.pptx"
   },
   "dependencies": {
     "jszip": "^3.10.1",
