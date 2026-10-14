@@ -33,6 +33,19 @@ function fontRefs(xml) {
     .replace(/<a:ea typeface="\+mn-lt"/g, '<a:ea typeface="+mn-ea"');
 }
 
+// A shape whose spPr names no fill is left to the reader: PowerPoint draws it
+// empty, but some editors give it the theme's default fill -- a frame meant to
+// be an outline came out solid blue. Say "no fill" out loud.
+function explicitNoFill(xml) {
+  return xml.replace(/<p:spPr>([\s\S]*?)<\/p:spPr>/g, (whole, inner) => {
+    // the outline's colour sits inside <a:ln> and is not a fill
+    const outsideLine = inner.replace(/<a:ln\b[\s\S]*?<\/a:ln>/, "");
+    if (/<a:(solidFill|noFill|gradFill|blipFill|pattFill)\b/.test(outsideLine)) return whole;
+    const withFill = inner.replace(/(<a:prstGeom\b[\s\S]*?<\/a:prstGeom>|<a:prstGeom\b[^>]*\/>|<a:custGeom\b[\s\S]*?<\/a:custGeom>)/, "$1<a:noFill/>");
+    return withFill === inner ? whole : `<p:spPr>${withFill}</p:spPr>`;
+  });
+}
+
 async function applyTheme(file, theme) {
   const zip = await JSZip.loadAsync(fs.readFileSync(file));
   for (const path of Object.keys(zip.files)) {
@@ -41,6 +54,7 @@ async function applyTheme(file, theme) {
     const before = xml;
     if (/^ppt\/theme\/theme\d+\.xml$/.test(path)) xml = themeXml(xml, theme);
     xml = fontRefs(xml);
+    if (/^ppt\/(slides|slideLayouts)\/[^/]+\.xml$/.test(path)) xml = explicitNoFill(xml);
     if (xml !== before) zip.file(path, xml);
   }
   fs.writeFileSync(file, await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" }));
