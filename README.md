@@ -77,7 +77,7 @@ d.phaseDetail(1, { title: "로봇 셋업 — 툴 오프셋", ... });   // 같은
 | `content` | CONTENT | 본문 — 제목 + `lead` 한 문단, 나머지는 컴포넌트로. `section` 을 주면 구분 슬라이드 없이 새 섹션 |
 | `closing` | CLOSING | 감사합니다 + 발표자, 이메일·연락처가 있으면 그 아래 |
 | `phaseOverview(title, phases, { current, remember })` | FEATURE | 흐름도 한 장 — `title` 은 오른쪽 위 머리글 자리, 단계 타임라인은 가운데. 단계 목록을 기억해 `phaseDetail` 이 쓴다(`remember: false` 면 기억하지 않음 — 번역본 같은 사본용) |
-| `phaseDetail(n, { title, lead, photos, sections })` | CONTENT | n 번째 단계 상세 — 제목과 `lead` 아래 왼쪽 사진 1~2장, 오른쪽 `\| 소제목` + 글머리 묶음. 같은 단계로 여러 번 부르면 여러 장 |
+| `phaseDetail(n, { title, lead, photos, sections, flow, textOnly })` | CONTENT | n 번째 단계 상세 — 사진 1~2장이면 왼쪽 사진 · 오른쪽 글, 3장이면 사진 셋을 가로로 놓고 글 묶음은 그 아래 나란히(`flow: true` 면 사진 사이에 가는 화살표를 넣어 단계로 읽힌다). `sections` 없이 사진 셋만 주면 조금 좁게, 페이지 가운데에 사진만 놓는다. `textOnly: true` 면 사진 없이 글 묶음을 전체 폭에 나란히. 그 밖에는 제목과 `lead` 아래 왼쪽 사진 1~2장, 오른쪽 `\| 소제목` + 글머리 묶음. 같은 단계로 여러 번 부르면 여러 장 |
 
 ## 컴포넌트
 
@@ -88,6 +88,7 @@ d.phaseDetail(1, { title: "로봇 셋업 — 툴 오프셋", ... });   // 같은
 |---|---|
 | `phaseFlow(s, name, phases, { current, x, y, w })` | 가로 단계 타임라인 — Phase 라벨 · 후광 점 · 제목 · 설명. `current`(1부터)는 후광이 크고, 뒤 단계는 회색, 선은 현재까지 네이비. 최대 8단계 — 5단계부터 글자가 작아지고, 긴 제목은 두 줄, 설명은 모든 열이 같은 높이에서 시작 |
 | `photo(s, name, x, y, w, h, { path, caption })` | 상자 안에 비율 유지로 맞춘 사진(PNG · JPEG). `path` 가 없으면 X 표시 자리 상자. 캡션은 `Figure n.` 자동 번호 |
+| `calendar(s, name, year, month, x, y, w, h, { marks })` | 얇은 테두리 흰 카드 위 한 달 달력(일요일 시작, 격자 없음, 앞달 끝은 연회색). `marks: [{ from, to, label }]` 는 한 주 안의 날짜 구간 아래 연한 빨강 둥근 막대를 깔고 날짜와 메모를 빨간 굵은 글씨로 적는다. `phaseDetail(n, { photos: [] })` 의 왼쪽 빈자리에 넣기 좋다 |
 | `tabBox(s, name, x, y, w, h, label, { plain, dark })` | 위 가장자리에 탭 라벨이 붙은 박스. 기본은 연한 채움 |
 | `stat(s, name, x, y, w, label, value, sub)` | 탭 박스 안의 큰 숫자 (높이 1.6 고정) |
 | `pill(s, name, n, x, y, w, text, tag)` | 네이비 번호 원 + 연한 알약, `tag` 는 회색 꼬리표 |
@@ -97,7 +98,10 @@ d.phaseDetail(1, { title: "로봇 셋업 — 툴 오프셋", ... });   // 같은
 | `barChart(s, name, series, x, y, w, h, extra)` | 묶은 세로 막대, 시리즈 2개면 회색/네이비 |
 | `caption(s, name, text, x, y, w)` | `Figure 1. ...` / `Table 1. ...` |
 | `downArrow` / `rightArrow` | 흐름 화살표 |
+| `flowArrow(s, name, cx, cy, len)` | (cx, cy) 를 가운데로 하는 가는 화살표(→). 사진 둘을 단계로 이을 때 |
+| `video(s, name, path, x, y, w, h, { cover, caption })` | 슬라이드에 넣는 영상(mp4). `cover` 는 재생 전 보이는 PNG |
 | `text` / `bullets` | 기본 글상자 |
+| `labelBox(s, name, text, x, y, w, h, { shape, fill, line, ... })` | 글자가 도형 안에 들어 있는 상자(가운데 정렬). 도형 위에 글상자를 겹치면 편집기에 따라 글자가 아래로 밀려 상자 밖으로 나가므로, 작은 상자에는 이것을 쓴다 |
 
 `name` 은 PowerPoint 선택 창에 보이는 개체 이름이다. 한 슬라이드 안에서 겹치지 않게.
 
