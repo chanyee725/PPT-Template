@@ -63,12 +63,12 @@ def main() -> int:
         for shape in slide.shapes:
             if shape.left is None:
                 continue
-            if (
-                shape.left < 0
-                or shape.top < 0
-                or shape.left + shape.width > sw
-                or shape.top + shape.height > sh
-            ):
+            left, top, w, h = shape.left, shape.top, shape.width, shape.height
+            if round(shape.rotation) % 180 == 90:
+                # turned a quarter: the box it covers swaps width and height
+                cx, cy = left + w / 2, top + h / 2
+                left, top, w, h = cx - h / 2, cy - w / 2, h, w
+            if left < 0 or top < 0 or left + w > sw or top + h > sh:
                 print(f"slide {n}: {shape.name} runs off the slide")
                 problems += 1
             if not shape.has_text_frame or not shape.text_frame.text.strip():
