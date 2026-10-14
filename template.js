@@ -132,7 +132,6 @@ function createDeck({ title, header, theme, palette = "navy", presenter, usePres
     objects: [
       { text: { text: runningHeader, options: { x: W - 6.6, y: 0.38, w: 6.0, h: 0.35, fontFace: HEAD, fontSize: 11, bold: true, color: NAVY, align: "right", margin: 0 } } },
       { rect: { x: 0, y: 7.28, w: W, h: 0.22, fill: { color: NAVY }, line: { type: "none" } } },
-      { line: { x: W - 0.95, y: 7.12, w: 0.35, h: 0, line: { color: C.accent2, width: 0.5 } } },
       { placeholder: { options: { name: "title", type: "title", align: "left", x: MX, y: 0.3, w: 6.5, h: 0.55, fontFace: HEAD, fontSize: 24, bold: true, color: C.text1, valign: "middle", margin: 0 }, text: "" } },
     ],
     slideNumber: { x: W - 0.95, y: 6.82, w: 0.35, h: 0.28, fontSize: 10, color: C.accent3, align: "center" },
@@ -145,7 +144,6 @@ function createDeck({ title, header, theme, palette = "navy", presenter, usePres
     background: { color: C.background1 },
     objects: [
       { rect: { x: 0, y: 7.28, w: W, h: 0.22, fill: { color: NAVY }, line: { type: "none" } } },
-      { line: { x: W - 0.95, y: 7.12, w: 0.35, h: 0, line: { color: C.accent2, width: 0.5 } } },
     ],
     slideNumber: { x: W - 0.95, y: 6.82, w: 0.35, h: 0.28, fontSize: 10, color: C.accent3, align: "center" },
   });
@@ -154,12 +152,19 @@ function createDeck({ title, header, theme, palette = "navy", presenter, usePres
     title: "CLOSING",
     background: { color: NAVY },
     objects: [
-      { line: { x: 0.9, y: 1.6, w: 0, h: 1.5, line: { color: C.background1, width: 1 } } },
+      { rect: { x: 0.89, y: 1.6, w: 0.014, h: 1.5, fill: { color: C.background1 }, line: { type: "none" } } },
       { placeholder: { options: { name: "title", type: "title", align: "left", x: 1.2, y: 1.6, w: 9, h: 1.0, fontFace: HEAD, fontSize: 48, bold: true, color: C.background1, valign: "top", margin: 0 }, text: "" } },
     ],
   });
 
   // ---------- primitives ----------
+
+  // A vertical line from (x, y) down by h. Drawn as a level line turned 90
+  // degrees: a zero-width line converts to a slanted "\\" in some tools. A
+  // beginArrowType lands at the top, an endArrowType at the bottom.
+  function vline(slide, name, x, y, h, line) {
+    slide.addShape(pres.shapes.LINE, { objectName: name, x: x - h / 2, y: y + h / 2, w: h, h: 0, rotate: 90, line });
+  }
   function text(slide, name, str, opts) {
     slide.addText(str, Object.assign({ objectName: name, isTextBox: true, margin: 0, fontSize: 14, color: C.text1, valign: "top" }, opts));
   }
@@ -198,7 +203,7 @@ function createDeck({ title, header, theme, palette = "navy", presenter, usePres
     sections.forEach(({ title, items }, i) => {
       const x = 1.6 + i * (colW + 0.35);
       text(s, `toc-${i}-num`, String(i + 1).padStart(2, "0"), { x, y: 2.2, w: 0.9, h: 0.7, fontFace: HEAD, fontSize: 32, color: NAVY });
-      s.addShape(pres.shapes.LINE, { objectName: `toc-${i}-rule`, x: x + 0.95, y: 2.25, w: 0, h: 2.9, line: { color: C.accent2, width: 0.75 } });
+      vline(s, `toc-${i}-rule`, x + 0.95, 2.25, 2.9, { color: C.accent2, width: 0.75 });
       text(s, `toc-${i}-h`, title, { x: x + 1.15, y: 2.25, w: colW - 1.2, h: 0.45, fontFace: HEAD, fontSize: 18, bold: true, color: NAVY });
       bullets(s, `toc-${i}-list`, items, { x: x + 1.15, y: 2.85, w: colW - 1.2, h: 2.3, color: C.accent3, paraSpaceAfter: 6 });
     });
@@ -240,7 +245,7 @@ function createDeck({ title, header, theme, palette = "navy", presenter, usePres
 
   // "| label" heading inside a content area
   function barLabel(slide, name, label, x, y, w) {
-    slide.addShape(pres.shapes.LINE, { objectName: name + "-bar", x, y: y + 0.04, w: 0, h: 0.26, line: { color: NAVY, width: 2 } });
+    slide.addShape(pres.shapes.RECTANGLE, { objectName: name + "-bar", x: x - 0.014, y: y + 0.04, w: 0.028, h: 0.26, fill: { color: NAVY }, line: { type: "none" } });
     text(slide, name, label, { x: x + 0.12, y, w: w - 0.12, h: 0.34, fontSize: 15, bold: true, color: NAVY, valign: "middle" });
   }
 
@@ -428,12 +433,28 @@ function createDeck({ title, header, theme, palette = "navy", presenter, usePres
     if (cap) caption(slide, name + "-caption", `Figure ${++figure}. ${cap}`, capX, capY, capW);
   }
 
-  // One slide about phase `n` (1-based): a lead, photos on the left and
-  // labelled bullet groups on the right. Call it again for a second
+  // A slim arrow between pictures that read as steps, centred on (cx, cy):
+  // one hairline with an open head. Drawn as a plain line -- no flips, which
+  // some editors ignore.
+  function flowArrow(slide, name, cx, cy, len = 0.36) {
+    slide.addShape(pres.shapes.LINE, {
+      objectName: name, x: cx - len / 2, y: cy, w: len, h: 0,
+      line: { color: NAVY, width: 1.5, endArrowType: "arrow" },
+    });
+  }
+
+  // One slide about phase `n` (1-based): a lead, then photos and labelled
+  // bullet groups -- one or two photos on the left with the groups beside them,
+  // or three photos in a row with the groups side by side underneath. Call it again for a second
   // slide on the same phase, with a `title` to tell them apart.
   //   photos:   [{ path, caption }]  -- one or two; a missing path draws a placeholder
   //   sections: [{ title, items: [] }]
-  function phaseDetail(n, { title, lead, photos = [{}], sections = [] } = {}) {
+  //   flow:     true puts a ">" between three photos, read as steps
+  //   photos: [] leaves the left area (MX, 2.0, 7.1 x 4.2) empty for the
+  //   caller -- e.g. a calendar.
+  //   textOnly: true -- no photos at all; the groups sit side by side across
+  //   the full width.
+  function phaseDetail(n, { title, lead, photos = [{}], sections = [], flow = false, textOnly = false } = {}) {
     if (!plan) throw new Error("phaseDetail needs phaseOverview first");
     const p = plan.phases[n - 1];
     const name = `Phase ${n} ${p.title}`;
@@ -442,28 +463,155 @@ function createDeck({ title, header, theme, palette = "navy", presenter, usePres
     s.addText(title || p.title, { placeholder: "title", align: "left" });
     if (lead) text(s, "lead", lead, { x: MX, y: 1.0, w: CW, h: 0.55, fontSize: 13.5 });
 
+    const size = 13;
+    const listHeight = (items, w) => {
+      const lines = items.reduce((k, item) => k + Math.max(1, Math.ceil(textWidth(item, size) / (w - 0.45))), 0);
+      return (lines * size * 1.25 + items.length * 4) / 72 + 0.1;
+    };
+    const group = (sec, i, x, y, w) => {
+      const h = listHeight(sec.items, w);
+      barLabel(s, `sec-${i}`, sec.title, x, y, w);
+      bullets(s, `sec-${i}-list`, sec.items, { x: x + 0.12, y: y + 0.45, w: w - 0.12, h, fontSize: size, paraSpaceAfter: 4 });
+      return 0.45 + h;
+    };
+    const gap = 0.25;
+
+    if (textOnly) {
+      const colW = (CW - 0.5 * (sections.length - 1)) / Math.max(1, sections.length);
+      sections.forEach((sec, i) => group(sec, i, MX + i * (colW + 0.5), 2.0, colW));
+      return s;
+    }
+
+    // Three photos: a row across the full width, the groups side by side below.
+    // With `flow`, wider gaps hold a ">" between them, level with the pictures.
+    // Without sections the row is a little narrower and sits in the middle of
+    // the page, photos only.
+    if (photos.length >= 3) {
+      const shown = photos.slice(0, 3);
+      const alone = sections.length === 0;
+      const rowGap = flow ? 0.6 : gap;
+      const rowW = alone ? CW - 0.8 : CW;
+      const each = (rowW - rowGap * 2) / 3;
+      const first = shown[0].path && imageSize(shown[0].path);
+      const boxH = first ? (each * first.h) / first.w : 2.9;
+      const x0 = MX + (CW - rowW) / 2;
+      const top = alone ? 1.6 + (6.75 - 1.6 - boxH - 0.35) / 2 : 1.7;
+      shown.forEach((ph, i) => photo(s, `photo-${i}`, x0 + i * (each + rowGap), top, each, boxH, ph));
+      if (flow) {
+        for (let i = 0; i < 2; i++) {
+          const gx = x0 + (i + 1) * each + i * rowGap;
+          flowArrow(s, `flow-${i}`, gx + rowGap / 2, top + boxH / 2);
+        }
+      }
+      const colW = (CW - 0.5 * (sections.length - 1)) / Math.max(1, sections.length);
+      sections.forEach((sec, i) => group(sec, i, MX + i * (colW + 0.5), 5.0, colW));
+      return s;
+    }
+
+    // One or two photos on the left, groups stacked on the right -- each as
+    // tall as its (wrapped) items, so a second group (e.g. the same items in
+    // English) sits right under the first.
     const top = 2.0;
     const picW = 7.1;
     const picH = 4.2;
-    const shown = photos.slice(0, 2);
-    const gap = 0.25;
-    const each = (picW - gap * (shown.length - 1)) / shown.length;
-    shown.forEach((ph, i) => photo(s, `photo-${i}`, MX + i * (each + gap), top, each, picH, ph));
+    if (photos.length) {
+      const each = (picW - gap * (photos.length - 1)) / photos.length;
+      photos.forEach((ph, i) => photo(s, `photo-${i}`, MX + i * (each + gap), top, each, picH, ph));
+    }
 
     const rx = MX + picW + 0.45;
     const rw = W - MX - rx;
-    // Groups stack top-down, each as tall as its (wrapped) items, so a second
-    // group -- e.g. the same items in English -- sits right under the first.
-    const size = 13;
     let y = top;
-    sections.forEach((sec, i) => {
-      const lines = sec.items.reduce((n, item) => n + Math.max(1, Math.ceil(textWidth(item, size) / (rw - 0.45))), 0);
-      const listH = (lines * size * 1.25 + sec.items.length * 4) / 72 + 0.1;
-      barLabel(s, `sec-${i}`, sec.title, rx, y, rw);
-      bullets(s, `sec-${i}-list`, sec.items, { x: rx + 0.12, y: y + 0.45, w: rw - 0.12, h: listH, fontSize: size, paraSpaceAfter: 4 });
-      y += 0.45 + listH + 0.35;
-    });
+    sections.forEach((sec, i) => { y += group(sec, i, rx, y, rw) + 0.35; });
     return s;
+  }
+
+  // A month on a white outlined card (no shadow), weeks starting on Sunday: a big month name,
+  // weekday initials, centred day numbers with no grid (the tail of the
+  // previous month in light grey). `marks` lay a soft rounded bar under a run
+  // of days inside one week, colour those dates and write a note under them:
+  //   [{ from: 19, to: 23, label: "카메라 · 그리퍼 입고 예정" }]
+  // Marks use the emphasis colour (accent5).
+  function calendar(slide, name, year, month, x, y, w, h, { marks = [] } = {}) {
+    const days = new Date(year, month, 0).getDate();
+    const prevDays = new Date(year, month - 1, 0).getDate();
+    const lead0 = new Date(year, month - 1, 1).getDay();
+    const rows = Math.ceil((lead0 + days) / 7);
+    const pad = 0.3;
+    const headH = 0.7;
+    const dowH = 0.34;
+    const gx = x + pad;
+    const gw = w - pad * 2;
+    const cellW = gw / 7;
+    const gridY = y + pad * 0.6 + headH + dowH;
+    const cellH = (y + h - pad * 0.6 - gridY) / rows;
+    const marked = (d) => marks.find((m) => d >= m.from && d <= m.to);
+    const at = (k) => ({ cx: gx + (k % 7) * cellW, cy: gridY + Math.floor(k / 7) * cellH, col: k % 7 });
+
+    slide.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+      objectName: name + "-card", x, y, w, h, rectRadius: 0.12,
+      fill: { color: C.background1 }, line: { color: C.accent6, width: 0.75 },
+    });
+    text(slide, name + "-month", [
+      { text: `${month}월`, options: { fontSize: 24, bold: true, color: NAVY } },
+      { text: `   ${year}`, options: { fontSize: 13, color: C.accent3 } },
+    ], { x: gx, y: y + pad * 0.6, w: gw, h: headH, valign: "middle" });
+
+    ["일", "월", "화", "수", "목", "금", "토"].forEach((dn, i) => {
+      text(slide, `${name}-dow-${i}`, dn, { x: gx + i * cellW, y: gridY - dowH, w: cellW, h: dowH, fontSize: 10.5, bold: true, color: i === 0 ? C.accent5 : C.accent3, align: "center", valign: "middle" });
+    });
+
+    const numH = 0.3;
+    const barDrop = 0.05; // the bar sits a little below the numbers, like a highlighter
+    marks.forEach((m, i) => {
+      const a = at(lead0 + m.from - 1);
+      const b = at(lead0 + m.to - 1);
+      const bx = a.cx + 0.06;
+      const bw = b.cx + cellW - a.cx - 0.12;
+      slide.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+        objectName: `${name}-mark-${i}`, x: bx, y: a.cy + 0.05 + barDrop, w: bw, h: numH, rectRadius: numH / 2,
+        fill: { color: C.accent5, transparency: 85 }, line: { type: "none" },
+      });
+      if (m.label) {
+        text(slide, `${name}-mark-${i}-label`, m.label, { x: bx, y: a.cy + 0.05 + numH + barDrop, w: bw, h: cellH - numH - 0.04 - barDrop, fontSize: 10.5, bold: true, color: C.accent5, align: "center", valign: "top" });
+      }
+    });
+
+    for (let k = 0; k < rows * 7; k++) {
+      const d = k - lead0 + 1;
+      if (d > days) break;
+      const { cx, cy, col } = at(k);
+      const inMonth = d >= 1;
+      const mk = inMonth && marked(d);
+      text(slide, `${name}-d${k}`, String(inMonth ? d : prevDays + d), {
+        x: cx, y: cy + 0.05, w: cellW, h: numH, fontSize: 12, bold: Boolean(mk), align: "center", valign: "middle",
+        color: !inMonth ? C.accent6 : mk ? C.accent5 : col === 0 ? C.accent5 : C.text1,
+      });
+    }
+  }
+
+  // A box with its text inside the same shape, centred both ways. Safer than a
+  // text box laid over a shape: editors that add their own line spacing push
+  // an overlaid text box down and out of the shape, but always centre text
+  // that belongs to the shape.
+  function labelBox(slide, name, str, x, y, w, h, { shape = "roundRect", fill = C.background1, line = { color: NAVY, width: 0.75 }, radius = 0.05, ...textOpts } = {}) {
+    const kind = shape === "rect" ? pres.shapes.RECTANGLE : shape === "ellipse" ? pres.shapes.OVAL : pres.shapes.ROUNDED_RECTANGLE;
+    slide.addText(str, Object.assign({
+      objectName: name, shape: kind, x, y, w, h, rectRadius: shape === "roundRect" ? radius : undefined,
+      fill: fill ? { color: fill } : { type: "none" }, line: line || { type: "none" },
+      // pptxgenjs reads a margin array as [left, right, bottom, top] (points).
+      // 8 pt at the bottom lifts the text: editors that set Korean with a
+      // taller line than PowerPoint otherwise show it low in the box.
+      margin: [0, 0, 8, 0], fontSize: 12, color: C.text1, align: "center", valign: "middle",
+    }, textOpts));
+  }
+
+  // An embedded video. `cover` is a PNG shown before it plays (the tool stores
+  // the poster as PNG, so it must be one); a caption sits under it.
+  function video(slide, name, file, x, y, w, h, { cover, caption: cap } = {}) {
+    const poster = cover ? "data:image/png;base64," + fs.readFileSync(cover).toString("base64") : undefined;
+    slide.addMedia({ objectName: name, type: "video", path: file, x, y, w, h, cover: poster });
+    if (cap) caption(slide, name + "-caption", cap, x, y + h + 0.08, w);
   }
 
   // Clustered column chart; series: [{ name, labels, values }].
@@ -515,7 +663,7 @@ function createDeck({ title, header, theme, palette = "navy", presenter, usePres
   return {
     pres, C, W, H, MX, CW,
     cover, contents, divider, content, closing, phaseOverview, phaseDetail,
-    text, bullets, barLabel, tabBox, stat, pill, summary, caption, downArrow, rightArrow, phaseFlow, photo, barChart, table, high, strong,
+    text, bullets, vline, barLabel, tabBox, stat, pill, summary, caption, downArrow, rightArrow, phaseFlow, photo, video, flowArrow, labelBox, calendar, barChart, table, high, strong,
     save,
   };
 }
