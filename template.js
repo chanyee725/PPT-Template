@@ -614,6 +614,112 @@ function createDeck({ title, header, theme, palette = "navy", presenter, usePres
     if (cap) caption(slide, name + "-caption", cap, x, y + h + 0.08, w);
   }
 
+  // A UML sequence diagram, one or more panels side by side inside a light
+  // "loop" frame (loopLabel null drops the frame). Each panel:
+  //   { title, lanes: ["로봇", ...], events: [[from, to, label, kind]], while: { rows: [a, b], label } }
+  // kind "act" is a lifeline's own action (an outlined box on it), "call" a
+  // solid navy arrow, "reply" a dashed grey one; from/to index the panel's
+  // lanes. Panels get width in proportion to their lanes, and a slim arrow
+  // joins one panel to the next. Leftward arrows put the head at the line's
+  // start (no flips) and lifelines are rotated level lines (no zero widths),
+  // so the diagram survives editors that mishandle either.
+  function sequenceDiagram(slide, name, panels, { loopLabel = "loop", top = 1.6, bottom = 6.8 } = {}) {
+    if (loopLabel) {
+      slide.addShape(pres.shapes.RECTANGLE, { objectName: name + "-loop", x: MX, y: top, w: CW, h: bottom - top, fill: { type: "none" }, line: { color: C.accent6, width: 1 } });
+      labelBox(slide, name + "-loop-tab", loopLabel, MX, top, Math.max(0.7, loopLabel.length * 0.09 + 0.3), 0.26, { shape: "rect", fill: C.background1, line: { color: C.accent2, width: 0.75 }, fontSize: 10, bold: true, color: NAVY });
+    }
+    const titleY = top + 0.36;
+    const headY = top + 0.76;
+    const headH = 0.32;
+    const rowsTop = headY + headH + 0.18;
+    const rowsBottom = bottom - 0.18;
+    const gapX = 0.45;
+    const inner = CW - 0.5 - gapX * (panels.length - 1);
+    const weight = panels.map((p) => p.lanes.length + 1);
+    const total = weight.reduce((a, b) => a + b, 0);
+    let px = MX + 0.25;
+
+    panels.forEach((panel, pi) => {
+      const key = `${name}-${pi}`;
+      const pw = (inner * weight[pi]) / total;
+      const n = panel.lanes.length;
+      const laneX = panel.lanes.map((_, i) => (n === 1 ? px + pw / 2 : px + 1.1 + (i * (pw - 2.2)) / (n - 1)));
+      if (panel.title) text(slide, `${key}-title`, panel.title, { x: px, y: titleY, w: pw, h: 0.3, fontSize: 13, bold: true, color: NAVY, valign: "middle" });
+      panel.lanes.forEach((lane, i) => {
+        labelBox(slide, `${key}-lane-${i}`, lane, laneX[i] - 0.8, headY, 1.6, headH, { fill: NAVY, line: null, radius: 0.16, fontSize: 11, bold: true, color: C.background1 });
+        vline(slide, `${key}-life-${i}`, laneX[i], headY + headH, rowsBottom - headY - headH, { color: C.accent2, width: 0.75, dashType: "dash" });
+      });
+
+      const wr = panel.while && panel.while.rows;
+      const pad = wr ? 0.34 : 0;
+      const rowH = (rowsBottom - rowsTop - 2 * pad) / panel.events.length;
+      const rowY = (i) => rowsTop + i * rowH + rowH / 2 + (wr && i >= wr[0] ? pad : 0) + (wr && i > wr[1] ? pad : 0);
+
+      if (wr) {
+        const lastLane = Math.max(...panel.events.slice(wr[0], wr[1] + 1).flatMap(([f, t]) => [f, t]));
+        const wx = px + 0.05;
+        const wy = rowY(wr[0]) - rowH / 2 - pad + 0.02;
+        const ww = laneX[lastLane] + 1.05 - wx;
+        const wh = rowY(wr[1]) + rowH / 2 + 0.04 - wy;
+        const label = panel.while.label || "while";
+        slide.addShape(pres.shapes.RECTANGLE, { objectName: `${key}-while`, x: wx, y: wy, w: ww, h: wh, fill: { type: "none" }, line: { color: C.accent2, width: 0.75, dashType: "dash" } });
+        labelBox(slide, `${key}-while-tab`, label, wx, wy, Math.max(0.9, label.length * 0.075 + 0.3), 0.27, { shape: "rect", fill: C.background1, line: { color: C.accent2, width: 0.75 }, fontSize: 9, bold: true, color: NAVY, margin: [0, 0, 9, 0] });
+      }
+
+      panel.events.forEach(([from, to, label, kind], i) => {
+        const y = rowY(i);
+        if (kind === "act") {
+          const w = 2.05;
+          labelBox(slide, `${key}-ev-${i}`, label, laneX[from] - w / 2, y - 0.16, w, 0.32, { fill: C.background1, line: { color: C.accent2, width: 0.75 }, radius: 0.07, fontSize: 10.5 });
+          return;
+        }
+        const left = Math.min(laneX[from], laneX[to]);
+        const w = Math.abs(laneX[to] - laneX[from]);
+        const reply = kind === "reply";
+        const head = laneX[to] > laneX[from] ? { endArrowType: "triangle" } : { beginArrowType: "triangle" };
+        const look = reply ? { color: C.accent3, width: 1, dashType: "dash" } : { color: NAVY, width: 1.25 };
+        slide.addShape(pres.shapes.LINE, { objectName: `${key}-ev-${i}`, x: left, y: y + 0.08, w, h: 0, line: Object.assign(look, head) });
+        // over more than one lane the label keeps to the last stretch, clear of the lifelines it crosses
+        const far = Math.max(from, to);
+        const span = Math.abs(to - from) > 1 ? { x: laneX[far - 1], w: laneX[far] - laneX[far - 1] } : { x: left, w };
+        text(slide, `${key}-ev-${i}-text`, label, { x: span.x - 0.3, y: y - 0.17, w: span.w + 0.6, h: 0.22, fontSize: 10.5, color: reply ? C.accent3 : C.text1, align: "center", valign: "bottom" });
+      });
+
+      if (pi < panels.length - 1) flowArrow(slide, `${key}-next`, px + pw + gapX / 2, (rowsTop + rowsBottom) / 2, 0.3);
+      px += pw + gapX;
+    });
+  }
+
+  // Big numbers in pale tiles, side by side (or stacked with column: true).
+  //   tiles: [{ label, value, unit, badge }] -- badge is a short mark (e.g. "x")
+  //   in a navy circle before the label. Every piece is its own one-line
+  //   shape: a line break inside one shape is dropped by some editors, which
+  //   then print the label and the number over each other.
+  function valueTiles(slide, name, tiles, x, y, w, { h = 1.4, gap = 0.3, column = false } = {}) {
+    const tw = column ? w : (w - gap * (tiles.length - 1)) / tiles.length;
+    tiles.forEach((tile, i) => {
+      const tx = column ? x : x + i * (tw + gap);
+      const ty = column ? y + i * (h + gap) : y;
+      slide.addShape(pres.shapes.ROUNDED_RECTANGLE, { objectName: `${name}-${i}`, x: tx, y: ty, w: tw, h, rectRadius: 0.1, fill: { color: TINT }, line: { type: "none" } });
+      let lx = tx + 0.3;
+      if (tile.badge) {
+        labelBox(slide, `${name}-${i}-badge`, tile.badge, tx + 0.28, ty + 0.24, 0.38, 0.38, { shape: "ellipse", fill: NAVY, line: null, fontSize: 14, bold: true, color: C.background1, margin: [0, 0, 2, 0] });
+        lx = tx + 0.78;
+      }
+      text(slide, `${name}-${i}-label`, tile.label, { x: lx, y: ty + 0.24, w: tx + tw - 0.25 - lx, h: 0.38, fontSize: 12, color: C.accent3, valign: "middle" });
+      text(slide, `${name}-${i}-value`, [
+        { text: String(tile.value), options: { fontSize: 34, bold: true, color: NAVY } },
+        { text: tile.unit || "", options: { fontSize: 16, bold: true, color: NAVY } },
+      ], { x: tx + 0.28, y: ty + h - 0.72, w: tw - 0.56, h: 0.62, valign: "bottom" });
+    });
+  }
+
+  // A plain black last slide, for ending without a "thank you" page.
+  function ending() {
+    startSection("마무리");
+    pres.addSlide({ sectionTitle: section }).background = { color: "000000" };
+  }
+
   // Clustered column chart; series: [{ name, labels, values }].
   function barChart(slide, name, series, x, y, w, h, extra) {
     slide.addChart(pres.charts.BAR, series, Object.assign({
@@ -662,8 +768,8 @@ function createDeck({ title, header, theme, palette = "navy", presenter, usePres
 
   return {
     pres, C, W, H, MX, CW,
-    cover, contents, divider, content, closing, phaseOverview, phaseDetail,
-    text, bullets, vline, barLabel, tabBox, stat, pill, summary, caption, downArrow, rightArrow, phaseFlow, photo, video, flowArrow, labelBox, calendar, barChart, table, high, strong,
+    cover, contents, divider, content, closing, ending, phaseOverview, phaseDetail,
+    text, bullets, vline, barLabel, tabBox, stat, pill, summary, caption, downArrow, rightArrow, phaseFlow, photo, video, flowArrow, labelBox, calendar, sequenceDiagram, valueTiles, barChart, table, high, strong,
     save,
   };
 }

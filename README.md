@@ -4,9 +4,15 @@
 글꼴을 파일에 직접 써 넣는다. 모든 색이 테마 색이라 PowerPoint 의
 `디자인 → 변형 → 색` 으로 덱 전체(띠·박스·차트)가 한 번에 바뀐다.
 
-지금 있는 종류는 **중간 보고** 하나다 — 표지 → Project FlowChart(단계 타임라인) → 단계별 상세
-(사진 + 설명, 단계마다 한 장 이상) → 리스크 · 다음 단계 → 마무리. 흰 바탕에 하단
-네이비 띠, Pretendard.
+지금 있는 종류는 **중간 보고** 하나다. 견본(`examples/interim-report.js`)은 매주
+회의 덱이 흘러가는 순서 그대로다:
+
+표지 → 프로젝트 개요(사진 + 데이터 표) → 구성 요소(큰 사진 + 작은 사진 둘) →
+Project FlowChart → 단계별 상세(사진 한 장 · 화면 캡처 · 사진 셋을 단계로 · 달력 ·
+글만) → 전체 시퀀스(시퀀스 다이어그램) → 비교 한 쌍(사진 → 사진) → 핵심 수치
+(사진 + 숫자 타일) → 실행 영상 → 향후 일정 → 검은 마지막 장.
+
+흰 바탕에 하단 네이비 띠, Pretendard.
 
 ## 처음 한 번
 
@@ -76,6 +82,7 @@ d.phaseDetail(1, { title: "로봇 셋업 — 툴 오프셋", ... });   // 같은
 | `divider` | DIVIDER | 섹션 구분 — 큰 번호, 이후 슬라이드가 이 섹션에 묶인다 |
 | `content` | CONTENT | 본문 — 제목 + `lead` 한 문단, 나머지는 컴포넌트로. `section` 을 주면 구분 슬라이드 없이 새 섹션 |
 | `closing` | CLOSING | 감사합니다 + 발표자, 이메일·연락처가 있으면 그 아래 |
+| `ending()` | (빈 장) | 아무것도 없는 검은 마지막 장 — 「감사합니다」 대신 |
 | `phaseOverview(title, phases, { current, remember })` | FEATURE | 흐름도 한 장 — `title` 은 오른쪽 위 머리글 자리, 단계 타임라인은 가운데. 단계 목록을 기억해 `phaseDetail` 이 쓴다(`remember: false` 면 기억하지 않음 — 번역본 같은 사본용) |
 | `phaseDetail(n, { title, lead, photos, sections, flow, textOnly })` | CONTENT | n 번째 단계 상세 — 사진 1~2장이면 왼쪽 사진 · 오른쪽 글, 3장이면 사진 셋을 가로로 놓고 글 묶음은 그 아래 나란히(`flow: true` 면 사진 사이에 가는 화살표를 넣어 단계로 읽힌다). `sections` 없이 사진 셋만 주면 조금 좁게, 페이지 가운데에 사진만 놓는다. `textOnly: true` 면 사진 없이 글 묶음을 전체 폭에 나란히. 그 밖에는 제목과 `lead` 아래 왼쪽 사진 1~2장, 오른쪽 `\| 소제목` + 글머리 묶음. 같은 단계로 여러 번 부르면 여러 장 |
 
@@ -100,6 +107,8 @@ d.phaseDetail(1, { title: "로봇 셋업 — 툴 오프셋", ... });   // 같은
 | `downArrow` / `rightArrow` | 흐름 화살표 |
 | `flowArrow(s, name, cx, cy, len)` | (cx, cy) 를 가운데로 하는 가는 화살표(→). 사진 둘을 단계로 이을 때 |
 | `video(s, name, path, x, y, w, h, { cover, caption })` | 슬라이드에 넣는 영상(mp4). `cover` 는 재생 전 보이는 PNG |
+| `sequenceDiagram(s, name, panels, { loopLabel })` | UML 시퀀스 다이어그램. 패널 여럿을 나란히(참여자 수에 비례한 폭), 바깥 `loop` 틀. 패널은 `{ title, lanes, events, while: { rows, label } }`, 사건은 `[from, to, label, kind]` — `act` 는 참여자 자신의 동작(테두리 상자), `call` 은 네이비 실선 화살표, `reply` 는 회색 점선 |
+| `valueTiles(s, name, tiles, x, y, w, { h, column })` | 연한 타일 안 큰 숫자. `{ label, value, unit, badge }` — `badge` 는 라벨 앞 네이비 원 안 글자(예: x) |
 | `text` / `bullets` | 기본 글상자 |
 | `labelBox(s, name, text, x, y, w, h, { shape, fill, line, ... })` | 글자가 도형 안에 들어 있는 상자(가운데 정렬). 도형 위에 글상자를 겹치면 편집기에 따라 글자가 아래로 밀려 상자 밖으로 나가므로, 작은 상자에는 이것을 쓴다 |
 
