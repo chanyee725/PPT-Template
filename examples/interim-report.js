@@ -1,7 +1,13 @@
-// Interim report: cover, the phase timeline, then detail slides phase by phase
-// (photos + notes), issues and next steps, closing -- placeholder content.
+// Interim report, page by page as the weekly meeting deck runs -- placeholder
+// content throughout. Copy it into outputs/<meeting date>/ for a real report,
+// drop usePresenterFile, and fill in the text and photos.
+//
+//   cover · overview · components · flow chart · detail slides per phase
+//   (one photo, a screenshot, three photos as steps, a calendar, text only)
+//   · sequence diagram · before/after pair · key numbers · video · plan · end
+//
 // node examples/interim-report.js templates/interim-report.pptx
-// PALETTE=slate node examples/interim-report.js preview/slate.pptx
+// PALETTE=softBlue node examples/interim-report.js preview/soft.pptx
 const path = require("path");
 const fs = require("fs");
 const { createDeck } = require("../template");
@@ -10,41 +16,57 @@ const out = process.argv[2] || path.join(__dirname, "..", "templates", "interim-
 fs.mkdirSync(path.dirname(out), { recursive: true });
 
 // templates/ is committed, so this one keeps the presenter placeholders.
-// A copy for a real report drops usePresenterFile to pick up presenter.json.
-// PALETTE=softBlue (or slate, teal) builds the same deck in another palette.
 const d = createDeck({ title: "프로젝트 중간 보고", usePresenterFile: false, palette: process.env.PALETTE || "navy" });
 const { W, MX, CW } = d;
 
 d.cover({
   title: "프로젝트 이름\n중간 보고",
   subtitle: "2026년 10월 2주차 중간보고",
-  date: "2026. 10. 13.",
+  date: "2026. 10. 19.",
 });
 
-// ---------- the whole project, then this stretch of it ----------
-// Each phaseOverview remembers its phases for the phaseDetail calls after it,
-// so the one the detail slides follow comes last.
-d.phaseOverview("Project Roadmap", [
-  { title: "요구사항 정의", desc: "작업 대상과 처리량,\n현장 조건을 정리" },
-  { title: "시스템 설계", desc: "로봇 · 카메라 · 대차\n구성과 인터페이스 결정" },
-  { title: "통합 개발", desc: "장비 셋업과 연동,\n픽업 시퀀스 구현" },
-  { title: "현장 시운전", desc: "실제 라인에서\n반복 운전과 보완" },
-  { title: "운영 이관", desc: "운영 매뉴얼 작성과\n담당자 교육" },
-], { current: 3 });
+// ---------- overview: the setup in one picture, and what must come out of it ----------
+{
+  const s = d.content("프로젝트 개요", { section: "프로젝트 개요", lead: "목표 — 한 문장으로" });
+  const pw = 6.8;
+  d.photo(s, "layout", MX, 2.25, pw, 3.76, { caption: "전체 배치" });
+  const rx = MX + pw + 0.45;
+  const rw = W - MX - rx;
+  d.barLabel(s, "data-h", "얻어야 하는 데이터", rx, 2.3, rw);
+  d.table(s, "data", ["데이터", "한 줄 설명"], [
+    [d.strong("데이터 1"), "무엇을 어떻게 재는지 한 줄"],
+    [d.strong("데이터 2"), "무엇을 어떻게 재는지 한 줄"],
+    [d.strong("데이터 3"), "무엇을 어떻게 재는지 한 줄"],
+    [d.strong("데이터 4"), "무엇을 어떻게 재는지 한 줄"],
+  ], rx, 2.78, rw, [1.7, rw - 1.7], { rowH: 0.58, fontSize: 11, align: ["left", "left"] });
+}
 
-// ---------- the timeline ----------
+// ---------- components: one large picture, two small ones with notes ----------
+{
+  const s = d.content("구성 요소", { section: "구성 요소", lead: "구성을 한 문장으로" });
+  d.photo(s, "main", MX, 2.0, 7.0, 4.3, { caption: "전체 구성" });
+  const rx = MX + 7.45;
+  const pw = 1.9;
+  const tx = rx + pw + 0.25;
+  const tw = W - MX - tx;
+  [["part-a", 2.0, 2.05, "구성 요소 A"], ["part-b", 4.55, 1.75, "구성 요소 B"]].forEach(([name, y, h, label]) => {
+    d.photo(s, name, rx, y, pw, h, { caption: label });
+    d.barLabel(s, `${name}-h`, label, tx, y, tw);
+    d.bullets(s, `${name}-list`, ["사양", "사양"], { x: tx + 0.12, y: y + 0.45, w: tw - 0.12, h: h - 0.45, fontSize: 12, paraSpaceAfter: 4 });
+  });
+}
+
+// ---------- the flow chart; the detail slides below follow its phases ----------
 d.phaseOverview("Project FlowChart", [
-  { title: "로봇 셋업", desc: "컨트롤러 연결과 관절 리밋 확인,\n티칭 포인트 등록" },
-  { title: "카메라 셋업", desc: "카메라 장착과 hand-eye\n캘리브레이션, 대상 인식 확인" },
-  { title: "대차 PLC 통합", desc: "Modbus 로 대차 도착 신호를\n받아 시퀀스와 연동" },
-  { title: "전체 시퀀스 테스트", desc: "픽업부터 적재까지\n전체 흐름을 반복 시험" },
+  { title: "1단계", desc: "단계 설명을\n두세 줄로" },
+  { title: "2단계", desc: "단계 설명을\n두세 줄로" },
+  { title: "3단계", desc: "단계 설명을\n두세 줄로" },
+  { title: "4단계", desc: "단계 설명을\n두세 줄로" },
+  { title: "5단계", desc: "단계 설명을\n두세 줄로" },
 ], { current: 3 });
 
-// ---------- one or more slides per phase ----------
 // lead: one line ending in a noun -- "~ 확인", "~ 완료". Below it 진행 내용, then
 // the same items in English for the readers who do not read Korean.
-// photos: { path: "photos/robot.jpg", caption } -- leave path out for a placeholder.
-// Up to 8 phases fit the flow chart.
 const progress = (...pairs) => [
   { title: "진행 내용", items: pairs.map(([ko]) => ko) },
   { title: "Progress", items: pairs.map(([, en]) => en) },
@@ -56,42 +78,116 @@ d.phaseDetail(1, {
   sections: progress(["내용 ~ 완료", "(item) done"], ["내용 ~ 확인", "(item) confirmed"]),
 });
 
-d.phaseDetail(2, {
-  lead: "(한 줄 요약) ~ 완료 — 사진 두 장을 나란히 둘 수도 있다",
-  photos: [{ caption: "사진 설명" }, { caption: "사진 설명" }],
+// a second slide on the same phase, e.g. a screenshot of a test
+d.phaseDetail(1, {
+  title: "1단계 — 테스트",
+  lead: "(한 줄 요약) ~ 완료",
+  photos: [{ caption: "화면 캡처" }],
   sections: progress(["내용 ~ 완료", "(item) done"], ["내용 ~ 확인", "(item) confirmed"]),
 });
 
-d.phaseDetail(3, {
-  lead: "(한 줄 요약) ~ 진행 중",
-  photos: [{ caption: "사진 설명" }],
-  sections: progress(["내용 ~ 완료", "(item) done"], ["내용 ~ 진행 중", "(item) in progress"]),
+// three pictures read as steps, photos only
+d.phaseDetail(2, {
+  flow: true,
+  lead: "(한 줄 요약) ~ 확인",
+  photos: [{ caption: "입력" }, { caption: "중간 결과" }, { caption: "최종 결과" }],
 });
 
+// nothing to photograph yet: the month, with the week something arrives
+{
+  const s = d.phaseDetail(3, {
+    lead: "(장비) 10월 3주차 입고 예정",
+    photos: [],
+    sections: progress(["(장비) 10월 3주차 입고 예정", "(equipment) arrives in week 3 of October"]),
+  });
+  d.calendar(s, "month", 2026, 10, MX, 2.0, 7.1, 4.3, { marks: [{ from: 19, to: 23, label: "입고 예정" }] });
+}
+
+// not started: text only
 d.phaseDetail(4, {
-  lead: "(한 줄 요약) ~ 예정",
-  photos: [{ caption: "구성도 또는 계획" }],
-  sections: progress(["내용 ~ 예정", "(item) planned"]),
+  lead: "(협의 필요 사항) — 아직 미착수",
+  textOnly: true,
+  sections: progress(["(누구) 와 (무엇) 협의 필요", "(what) to be agreed with (whom)"], ["협의 전까지 미착수", "Not started until then"]),
 });
 
-// ---------- issues and next steps ----------
+// ---------- the whole cycle as a sequence diagram ----------
 {
-  const s = d.content("리스크", { section: "이슈 및 향후 계획", lead: "등급 · 리스크 · 영향 · 대응을 한 표에." });
-  d.caption(s, "tab", "Table 1. 주요 리스크와 대응", MX, 2.05, 8);
-  d.table(s, "risks", ["등급", "리스크", "영향", "대응"], [
-    [d.high("높음"), "리스크", "영향", "대응"],
-    [d.strong("중간"), "리스크", "영향", "대응"],
-  ], MX, 2.45, CW, [1.1, 2.7, 4.9, CW - 8.7], { rowH: 0.75 });
+  const s = d.content("전체 시퀀스", { section: "전체 시퀀스", lead: "한 사이클 — 순서대로 진행하고 반복" });
+  d.sequenceDiagram(s, "seq", [
+    {
+      title: "Pick",
+      lanes: ["로봇", "카메라"],
+      events: [
+        [0, 0, "① 준비 위치로 이동", "act"],
+        [0, 1, "② 촬영 요청", "call"],
+        [1, 1, "③ 대상 찾기", "act"],
+        [1, 0, "위치", "reply"],
+        [0, 0, "④ 집기", "act"],
+      ],
+    },
+    {
+      title: "Place",
+      lanes: ["로봇", "카메라", "설비"],
+      events: [
+        [0, 2, "⑤ 이동 요청", "call"],
+        [2, 2, "⑥ 이동", "act"],
+        [2, 0, "⑦ 도착 신호", "reply"],
+        [0, 1, "⑧ 놓을 곳 찾기", "call"],
+        [1, 0, "놓을 위치", "reply"],
+        [0, 0, "⑨ 놓기", "act"],
+      ],
+      while: { rows: [3, 4], label: "while [미검출 · ≤3회]" },
+    },
+  ]);
 }
 
+// ---------- a before/after pair joined by an arrow ----------
 {
-  const s = d.content("다음 단계", { lead: "순서대로 할 일과, 듣는 사람에게 요청할 것." });
-  ["할 일", "할 일", "할 일", "할 일"].forEach((t, i) => d.pill(s, `next-${i}`, i + 1, MX, 2.2 + i * 0.82, 7.4, t));
-  const ax = MX + 7.9;
-  d.tabBox(s, "ask", ax, 2.35, W - MX - ax, 3.9, "요청 사항");
-  d.bullets(s, "ask-list", ["요청", "요청"], { x: ax + 0.3, y: 2.75, w: W - MX - ax - 0.6, h: 3.2, paraSpaceAfter: 12 });
+  const s = d.content("가상환경 구성", { section: "가상환경 구성", lead: "실제 배치를 가상환경으로 구현" });
+  const gap = 0.8;
+  const boxW = (CW - gap) / 2;
+  const boxH = 3.2;
+  const top = 1.6 + (6.75 - 1.6 - boxH - 0.35) / 2;
+  d.photo(s, "real", MX, top, boxW, boxH, { caption: "실제" });
+  d.photo(s, "sim", MX + boxW + gap, top, boxW, boxH, { caption: "가상환경" });
+  d.flowArrow(s, "flow", MX + boxW + gap / 2, top + boxH / 2);
 }
 
-d.closing({ subtitle: "프로젝트 중간 보고" });
+// ---------- key numbers next to the picture they belong to ----------
+{
+  const s = d.content("허용 오차", { section: "허용 오차", lead: "(무엇) 의 허용 오차를 x 축 (값) · y 축 (값) 으로 설정" });
+  d.photo(s, "subject", MX, 1.75, 4.4, 4.0, { caption: "대상" });
+  const rx = MX + 4.85;
+  const rw = W - MX - rx;
+  d.photo(s, "frame", rx, 1.75, rw, 2.3, { caption: "좌표 — x: (방향), y: (방향)" });
+  d.valueTiles(s, "tol", [
+    { badge: "x", label: "(방향)", value: 50, unit: " mm" },
+    { badge: "y", label: "(방향)", value: 30, unit: " mm" },
+  ], rx, 4.6, rw);
+}
+
+// ---------- the run on video ----------
+// d.video(s, "run", "outputs/<date>/photos/run.mp4", x, y, w, h, { cover: "....png" })
+// embeds an mp4; the box below stands in for it here.
+{
+  const s = d.content("실행 영상", { section: "실행 영상" });
+  const vh = 5.6;
+  const vw = vh * 16 / 9;
+  d.photo(s, "run", MX + (CW - vw) / 2, 1.1, vw, vh, {});
+}
+
+// ---------- what comes next ----------
+{
+  const s = d.content("향후 일정", { section: "향후 일정", lead: "다음 단계를 한 문장으로" });
+  d.phaseFlow(s, "plan", [
+    { label: "완료", title: "할 일", desc: "설명" },
+    { label: "10월 3주차", title: "할 일", desc: "설명" },
+    { label: "이후", title: "할 일", desc: "설명" },
+    { label: "10월 4주차", title: "할 일", desc: "설명" },
+    { label: "예정", title: "할 일", desc: "설명" },
+  ], { current: 2 });
+}
+
+d.ending();
 
 d.save(out).then((f) => console.log("wrote", f));
